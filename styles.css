@@ -371,11 +371,6 @@ button:hover {
     height: 24px;
 }
 
-.drag-handle:hover, .drag-handle:focus {
-    color: #f4f4f9;
-    background: rgba(76, 175, 80, 0.2);
-}
-
 .drag-handle:active {
     cursor: grabbing;
 }
