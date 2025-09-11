@@ -224,7 +224,7 @@ if (document.querySelector('.progress-circle')) {
             if (hasItems && (!allHabitsCompleted || !allTasksCompleted)) {
                 consecutiveDays -= 1;
                 previousCircleProgress = circleProgress;
-                circleProgress = Math.max(-100, circleProgress - 1); // Decrease by 1%, cap at -100%
+                circleProgress = consecutiveDays;
                 setProgress(circleProgress);
                 localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
                 localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
@@ -282,16 +282,17 @@ if (document.querySelector('.progress-circle')) {
 
     // Get task chart data for current day only
     function getTaskChartData() {
-        const today = DateTime.fromISO(currentDate, { zone: userTimezone }).toISODate();
+        const today = DateTime.now().setZone(userTimezone).toISODate();
         const progress = taskHistory[today] !== undefined ? taskHistory[today] : 0;
         return [progress, 100 - progress]; // [completed, remaining]
     }
 
     // Get task chart labels for current day
     function getTaskChartLabels() {
-        const today = DateTime.fromISO(currentDate, { zone: userTimezone });
-        const dateStr = today.toFormat('ccc, LLL dd'); // e.g., "Thu, Sep 11"
-        return [dateStr, 'Remaining'];
+        const today = DateTime.now().setZone(userTimezone);
+        const dateStr = today.toLocaleString(DateTime.DATE_SHORT);
+        const weekday = today.weekdayLong;
+        return [`${weekday} ${dateStr}`, 'Remaining'];
     }
 
     // Update progress, history, and streak
@@ -321,7 +322,7 @@ if (document.querySelector('.progress-circle')) {
         if (allHabitsCompleted && allTasksCompleted && hasItems && !hasIncrementedToday && circleProgress < 100) {
             consecutiveDays += 1;
             previousCircleProgress = circleProgress;
-            circleProgress += 1; // Increase by 1% for complete day
+            circleProgress = consecutiveDays;
             hasIncrementedToday = true;
             setProgress(circleProgress);
             localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
@@ -678,8 +679,15 @@ if (document.querySelector('.progress-circle')) {
         habits[index].completed = !habits[index].completed;
         if (!habits[index].completed) {
             consecutiveDays = 0;
+            previousCircleProgress = circleProgress;
+            circleProgress = 0;
+            hasIncrementedToday = false;
+            setProgress(circleProgress);
+            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
             localStorage.setItem('consecutiveDays', JSON.stringify(consecutiveDays));
-            console.log(`Habit ${index} unchecked, consecutiveDays reset to ${consecutiveDays}`);
+            console.log(`Habit ${index} unchecked, streak reset: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, consecutiveDays=${consecutiveDays}`);
         }
         renderHabits();
     }
@@ -688,8 +696,15 @@ if (document.querySelector('.progress-circle')) {
         tasks[index].completed = !tasks[index].completed;
         if (!tasks[index].completed) {
             consecutiveDays = 0;
+            previousCircleProgress = circleProgress;
+            circleProgress = 0;
+            hasIncrementedToday = false;
+            setProgress(circleProgress);
+            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
             localStorage.setItem('consecutiveDays', JSON.stringify(consecutiveDays));
-            console.log(`Task ${index} unchecked, consecutiveDays reset to ${consecutiveDays}`);
+            console.log(`Task ${index} unchecked, streak reset: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, consecutiveDays=${consecutiveDays}`);
         }
         renderTasks();
     }
@@ -697,8 +712,15 @@ if (document.querySelector('.progress-circle')) {
     function deleteHabit(index) {
         habits.splice(index, 1);
         consecutiveDays = 0;
+        previousCircleProgress = circleProgress;
+        circleProgress = 0;
+        hasIncrementedToday = false;
+        setProgress(circleProgress);
+        localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+        localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+        localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
         localStorage.setItem('consecutiveDays', JSON.stringify(consecutiveDays));
-        console.log(`Habit ${index} deleted, consecutiveDays reset to ${consecutiveDays}`);
+        console.log(`Habit ${index} deleted, streak reset`);
         updateBackendReminders();
         renderHabits();
     }
@@ -706,8 +728,15 @@ if (document.querySelector('.progress-circle')) {
     function deleteTask(index) {
         tasks.splice(index, 1);
         consecutiveDays = 0;
+        previousCircleProgress = circleProgress;
+        circleProgress = 0;
+        hasIncrementedToday = false;
+        setProgress(circleProgress);
+        localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+        localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+        localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
         localStorage.setItem('consecutiveDays', JSON.stringify(consecutiveDays));
-        console.log(`Task ${index} deleted, consecutiveDays reset to ${consecutiveDays}`);
+        console.log(`Task ${index} deleted, streak reset`);
         updateBackendReminders();
         renderTasks();
     }
@@ -719,8 +748,15 @@ if (document.querySelector('.progress-circle')) {
         if (habitName) {
             habits.push({ name: habitName, completed: false, reminder: reminderTime || null });
             consecutiveDays = 0;
+            previousCircleProgress = circleProgress;
+            circleProgress = 0;
+            hasIncrementedToday = false;
+            setProgress(circleProgress);
+            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
             localStorage.setItem('consecutiveDays', JSON.stringify(consecutiveDays));
-            console.log(`New habit added: ${habitName}, reminder: ${reminderTime || 'none'}, consecutiveDays reset to ${consecutiveDays}`);
+            console.log(`New habit added: ${habitName}, reminder: ${reminderTime || 'none'}, streak reset`);
             habitInput.value = '';
             habitReminder.value = '';
             updateBackendReminders();
@@ -735,8 +771,15 @@ if (document.querySelector('.progress-circle')) {
         if (taskName) {
             tasks.push({ name: taskName, completed: false, reminder: reminderTime || null });
             consecutiveDays = 0;
+            previousCircleProgress = circleProgress;
+            circleProgress = 0;
+            hasIncrementedToday = false;
+            setProgress(circleProgress);
+            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
             localStorage.setItem('consecutiveDays', JSON.stringify(consecutiveDays));
-            console.log(`New task added: ${taskName}, reminder: ${reminderTime || 'none'}, consecutiveDays reset to ${consecutiveDays}`);
+            console.log(`New task added: ${taskName}, reminder: ${reminderTime || 'none'}, streak reset`);
             taskInput.value = '';
             taskReminder.value = '';
             updateBackendReminders();
@@ -750,6 +793,9 @@ if (document.querySelector('.progress-circle')) {
         localStorage.setItem('chartOffset', JSON.stringify(chartOffset));
         updateHabitChart();
     });
+
+    // Remove task chart reset button functionality as we only show current day
+    taskResetChart.classList.add('hidden');
 
     // Swipe Gestures for Habit Chart
     let habitTouchStartX = 0;
