@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get One</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <header class="navbar-header">
+        <h1 style="font-size: 2.5rem;">GET ONE</h1>
+    </header>
+
+    <section class="progress-circle">
+        <h2>Progress</h2>
+        <div class="circle-container">
+            <svg class="progress-ring" width="200" height="200">
+                <circle class="progress-ring__circle" stroke="#81C784" stroke-width="10" fill="transparent" r="90" cx="100" cy="100"/>
+            </svg>
+            <span class="circle-text" id="circle-text">0%</span>
+        </div>
+        <p id="current-date" aria-label="Current date"></p>
+
+  <h2 id="current-date" aria-label="Current date"></h2>
+
+<section class="habit-tracker">
+    <h2>Habit Tracker</h2>
+    <p id="reset-info"></p>
+    <form id="habit-form">
+        <input type="text" id="habit-input" placeholder="Add a new habit..." aria-label="Enter new habit">
+        <input type="time" id="habit-reminder" aria-label="Set daily reminder time for habit">
+        <button type="submit" aria-label="Add habit">Add Habit</button>
+    </form>
+    <div id="habit-list" role="list" aria-label="List of habits"></div>
+    <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+        <div id="progress-fill"></div>
+    </div>
+    <p id="progress-text">Progress: 0%</p>
+    <div class="chart-container">
+        <h3>Habit Completion History</h3>
+        <canvas id="history-chart"></canvas>
+        <button id="reset-chart" class="hidden">Back</button>
+    </div>
+</section>
+
+<section class="task-tracker">
+    <h2>Task Tracker</h2>
+    <p id="task-reset-info"></p>
+    <form id="task-form">
+        <input type="text" id="task-input" placeholder="Add a new task..." aria-label="Enter new task">
+        <input type="time" id="task-reminder" aria-label="Set daily reminder time for task">
+        <button type="submit" aria-label="Add task">Add Task</button>
+    </form>
+    <div id="task-list" role="list" aria-label="List of tasks"></div>
+    <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+        <div id="task-progress-fill"></div>
+    </div>
+    <p id="task-progress-text">Progress: 0%</p>
+    <div class="chart-container">
+        <h3>Task Completion History</h3>
+        <canvas id="task-history-chart"></canvas>
+        <button id="task-reset-chart" class="hidden">Back</button>
+    </div>
+</section>
+
+    <nav class="navbar-links">
+        <ul>
+            <li>
+                <a href="index.html" class="active">Progress</a>
+            </li>
+            <li>
+                <a href="methods.html">Methods</a>
+            </li>
+        </ul>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>
