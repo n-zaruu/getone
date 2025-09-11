@@ -1,0 +1,473 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: #1a1a1a;
+    color: #f4f4f9;
+    line-height: 1.6;
+    padding-top: 80px;
+    padding-bottom: 60px;
+}
+
+.progress-circle {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.progress-circle h2 {
+    font-size: 2rem;
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+#current-date {
+    font-size: 1.2rem;
+    margin-top: 10px;
+    color: #f4f4f9;
+}
+
+.circle-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+}
+
+.progress-ring__circle {
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    stroke-dasharray: 565.48;
+    stroke-dashoffset: 565.48;
+    stroke: #4CAF50;
+    stroke-width: 10;
+    fill: transparent;
+    transition: stroke-dashoffset 2s ease-in-out, stroke 0.3s ease;
+}
+
+.progress-ring__circle.negative {
+    stroke: #e74c3c;
+    transform: rotate(90deg);
+}
+
+.circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: 600;
+    color: #4CAF50;
+}
+
+.methods {
+    padding: 50px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.methods h2 {
+    text-align: center;
+    font-size: 2rem;
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+.method-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: #2c2c2c;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    transform: translateY(20px);
+    opacity: 0;
+    animation: slideIn 0.5s ease forwards;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:nth-child(2) { animation-delay: 0.2s; }
+.card:nth-child(3) { animation-delay: 0.4s; }
+.card:nth-child(4) { animation-delay: 0.6s; }
+
+@keyframes slideIn {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+}
+
+.card h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.learn-more {
+    margin-top: 10px;
+    background: #4CAF50;
+    color: white;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    display: inline-block;
+    transition: background 0.3s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+.learn-more:hover {
+    background: #6ab070;
+}
+
+.habit-tracker, .task-tracker {
+    padding: 50px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.habit-tracker h2, .task-tracker h2 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+#reset-info, #task-reset-info {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #aaa;
+}
+
+#habit-form, #task-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 0px;
+}
+
+#habit-input, #task-input {
+    padding: 9px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    flex: 1;
+    background: #2c2c2c;
+    color: #f4f4f9;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+/* Habit and Task Tracker */
+#habit-form, #task-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+#habit-reminder, #task-reminder {
+    padding: 8px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    background: #2c2c2c;
+    color: #f4f4f9;
+    flex: 1;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+#habit-reminder, #task-reminder {
+    max-width: 110px; /* Adjusted for time input */
+}
+
+.habit-item input[type="time"], .task-item input[type="time"] {
+    font-size: 0.9rem;
+    padding: 8px;
+    border: none;
+    border-radius: 10px;
+    background: #2c2c2c;
+    color: #f4f4f9;
+    max-width: 100px; /* Adjusted for time input */
+    margin-right: 10px;
+    margin-left: 10px;
+    transition: border-color 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+.habit-item input[type="time"]:focus, .task-item input[type="time"]:focus {
+    border: 1px solid #444; /* Match the non-focused state */
+    outline: none;
+}
+
+button {
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+button:hover {
+    background: #6ab070;
+}
+
+#reset-chart, #task-reset-chart {
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+#reset-chart:hover, #task-reset-chart:hover {
+    background: #6ab070;
+}
+
+.hidden {
+    display: none;
+}
+
+#habit-list, #task-list {
+    margin-bottom: 20px;
+}
+
+.habit-item, .task-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #2c2c2c;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.5s ease;
+    touch-action: none;
+}
+
+.habit-item.dragging, .task-item.dragging {
+    opacity: 0.7;
+    background: #3a3a3a;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.habit-item input[type="checkbox"], .task-item input[type="checkbox"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f4f4f9;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 10px;
+    flex-shrink: 0;
+    background-color: transparent;
+    transition: background-color 0.2s, border-color 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+.habit-item input[type="checkbox"]:checked, .task-item input[type="checkbox"]:checked {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+    position: relative;
+}
+
+.habit-item input[type="checkbox"]:checked::after, .task-item input[type="checkbox"]:checked::after {
+    content: '\2713';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.habit-item span, .task-item span {
+    flex: 1;
+    text-align: left;
+    font-size: 1rem;
+    cursor: text;
+    padding: 5px;
+    border-radius: 10px;
+    transition: background 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+.habit-item span:hover, .task-item span:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.habit-item input.edit-input, .task-item input.edit-input {
+    flex: 1;
+    font-size: 1rem;
+    padding: 5px;
+    border: 1px solid #4CAF50;
+    border-radius: 10px;
+    background: #2c2c2c;
+    color: #f4f4f9;
+    outline: none;
+    transition: border-color 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+.habit-item input.edit-input:focus, .task-item input.edit-input:focus{
+    border-color: #6ab070;
+}
+
+.habit-item div, .task-item div {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.delete-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-left: 5px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+.delete-btn:hover {
+    background: #c0392b;
+}
+
+.drag-handle {
+    cursor: grab;
+    padding: 5px;
+    color: #aaa;
+    font-size: 1.2rem;
+    transition: color 0.2s, background 0.2s;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.drag-handle:hover, .drag-handle:focus {
+    color: #f4f4f9;
+    background: rgba(76, 175, 80, 0.2);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.progress-bar {
+    height: 20px;
+    background: #444;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 20px 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+#progress-fill, #task-progress-fill {
+    height: 100%;
+    width: 0;
+    background: #4CAF50;
+    transition: width 0.5s ease;
+}
+
+#progress-text, #task-progress-text {
+    font-size: 1.2rem;
+}
+
+.chart-container {
+    margin-top: 30px;
+    padding: 20px;
+    background: #2c2c2c;
+    border-radius: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    touch-action: none;
+}
+
+.chart-container h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.chart-container #reset-chart, .chart-container #task-reset-chart {
+    margin-top: 10px;
+}
+
+[title]:hover:after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #555;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    z-index: 10;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+button:focus, input:focus, ion-icon.drag-handle:focus {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    background: #222;
+    color: white;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding-top: 60px;
+        padding-bottom: 50px;
+    }
+    .progress-circle h2, .methods h2, .habit-tracker h2, .task-tracker h2 {
+        font-size: 1.5rem;
+    }
+    .card {
+        padding: 15px;
+    }
+    footer {
+        margin-bottom: 50px;
+    }
+}
+
+/* Date Container */
+.date-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+}
