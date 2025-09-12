@@ -673,30 +673,22 @@ if (document.querySelector('.progress-circle')) {
 
     function toggleHabit(index) {
         habits[index].completed = !habits[index].completed;
-        if (!habits[index].completed) {
-            previousCircleProgress = circleProgress;
-            circleProgress = Math.max(0, circleProgress - 1);
+        // No progress decrease on uncheck - only reset hasIncrementedToday if needed
+        if (!habits[index].completed && hasIncrementedToday) {
             hasIncrementedToday = false;
-            setProgress(circleProgress);
-            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
-            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`Habit ${index} unchecked, progress decreased by 1%: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}`);
+            console.log(`Habit ${index} unchecked, increment flag reset`);
         }
         renderHabits();
     }
 
     function toggleTask(index) {
         tasks[index].completed = !tasks[index].completed;
-        if (!tasks[index].completed) {
-            previousCircleProgress = circleProgress;
-            circleProgress = Math.max(0, circleProgress - 1);
+        // No progress decrease on uncheck - only reset hasIncrementedToday if needed
+        if (!tasks[index].completed && hasIncrementedToday) {
             hasIncrementedToday = false;
-            setProgress(circleProgress);
-            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
-            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`Task ${index} unchecked, progress decreased by 1%: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}`);
+            console.log(`Task ${index} unchecked, increment flag reset`);
         }
         renderTasks();
     }
