@@ -317,9 +317,8 @@ if (document.querySelector('.progress-circle')) {
         const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
         const hasItems = habits.length > 0 || tasks.length > 0;
 
-        console.log(`updateProgress check: allHabitsCompleted=${allHabitsCompleted}, allTasksCompleted=${allTasksCompleted}, hasItems=${hasItems}, hasIncrementedToday=${hasIncrementedToday}, circleProgress=${circleProgress}`);
-
         if (allHabitsCompleted && allTasksCompleted && hasItems && !hasIncrementedToday && circleProgress < 100) {
+            // Increase by 1% and lock in
             previousCircleProgress = circleProgress;
             circleProgress = Math.min(100, circleProgress + 1);
             hasIncrementedToday = true;
@@ -327,9 +326,18 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
             localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`All lists checked, incremented: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, hasIncrementedToday=${hasIncrementedToday}`);
+            console.log(`All completed, incremented: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, hasIncrementedToday=${hasIncrementedToday}`);
+        } else if (hasIncrementedToday && (!allHabitsCompleted || !allTasksCompleted)) {
+            // Revert to previous if any unchecked after increment
+            circleProgress = previousCircleProgress;
+            hasIncrementedToday = false;
+            setProgress(circleProgress);
+            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
+            console.log(`Any unchecked after increment, reverted: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, hasIncrementedToday=${hasIncrementedToday}`);
         } else {
-            console.log(`No increment: Not all lists checked or already incremented today`);
+            console.log(`No change: habits=${allHabitsCompleted}, tasks=${allTasksCompleted}, hasItems=${hasItems}, hasIncrementedToday=${hasIncrementedToday}`);
         }
         updateHabitChart();
         updateTaskChart();
@@ -475,6 +483,7 @@ if (document.querySelector('.progress-circle')) {
             dragHandle.addEventListener('keydown', (e) => handleKeydown(e, 'habit', item.getAttribute('data-index')));
         });
 
+        updateProgress();
         localStorage.setItem('habits', JSON.stringify(habits));
     }
 
@@ -508,6 +517,7 @@ if (document.querySelector('.progress-circle')) {
             dragHandle.addEventListener('keydown', (e) => handleKeydown(e, 'task', item.getAttribute('data-index')));
         });
 
+        updateProgress();
         localStorage.setItem('tasks', JSON.stringify(tasks));
     }
 
@@ -550,12 +560,10 @@ if (document.querySelector('.progress-circle')) {
             console.log(`Saved ${type} at index ${index}: ${newName}`);
         }
         type === 'habit' ? renderHabits() : renderTasks();
-        updateProgress(); // Check for increment after edit
     }
 
     function cancelEdit(index, type, input) {
         type === 'habit' ? renderHabits() : renderTasks();
-        updateProgress(); // Check for increment after cancel
         console.log(`Canceled editing ${type} at index ${index}`);
     }
 
@@ -570,7 +578,6 @@ if (document.querySelector('.progress-circle')) {
         updateBackendReminders();
         console.log(`Updated reminder for ${type} at index ${index}: ${reminderTime || 'none'}`);
         type === 'habit' ? renderHabits() : renderTasks();
-        updateProgress(); // Check for increment after reminder update
     }
 
     function moveHabitUp(index) {
@@ -579,7 +586,6 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('habits', JSON.stringify(habits));
             updateBackendReminders();
             renderHabits();
-            updateProgress(); // Check for increment after reorder
             console.log(`Habit moved up: index=${index}`);
         }
     }
@@ -590,7 +596,6 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('habits', JSON.stringify(habits));
             updateBackendReminders();
             renderHabits();
-            updateProgress(); // Check for increment after reorder
             console.log(`Habit moved down: index=${index}`);
         }
     }
@@ -601,7 +606,6 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('tasks', JSON.stringify(tasks));
             updateBackendReminders();
             renderTasks();
-            updateProgress(); // Check for increment after reorder
             console.log(`Task moved up: index=${index}`);
         }
     }
@@ -612,7 +616,6 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('tasks', JSON.stringify(tasks));
             updateBackendReminders();
             renderTasks();
-            updateProgress(); // Check for increment after reorder
             console.log(`Task moved down: index=${index}`);
         }
     }
@@ -644,14 +647,12 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('habits', JSON.stringify(habits));
             updateBackendReminders();
             renderHabits();
-            updateProgress(); // Check for increment after drag
             console.log(`Habit dragged from index ${fromIndex} to ${toIndex}`);
         } else {
             [tasks[fromIndex], tasks[toIndex]] = [tasks[toIndex], tasks[fromIndex]];
             localStorage.setItem('tasks', JSON.stringify(tasks));
             updateBackendReminders();
             renderTasks();
-            updateProgress(); // Check for increment after drag
             console.log(`Task dragged from index ${fromIndex} to ${toIndex}`);
         }
     }
@@ -681,21 +682,15 @@ if (document.querySelector('.progress-circle')) {
     }
 
     function toggleHabit(index) {
-        const wasCompleted = habits[index].completed;
         habits[index].completed = !habits[index].completed;
-        console.log(`toggleHabit: index=${index}, completed=${habits[index].completed}, wasCompleted=${wasCompleted}, hasIncrementedToday=${hasIncrementedToday}`);
-        // No flag reset on uncheck - increment is locked for the day once earned
+        console.log(`toggleHabit: index=${index}, completed=${habits[index].completed}, hasIncrementedToday=${hasIncrementedToday}`);
         renderHabits();
-        updateProgress(); // Check immediately if all lists are checked for increment
     }
 
     function toggleTask(index) {
-        const wasCompleted = tasks[index].completed;
         tasks[index].completed = !tasks[index].completed;
-        console.log(`toggleTask: index=${index}, completed=${tasks[index].completed}, wasCompleted=${wasCompleted}, hasIncrementedToday=${hasIncrementedToday}`);
-        // No flag reset on uncheck - increment is locked for the day once earned
+        console.log(`toggleTask: index=${index}, completed=${tasks[index].completed}, hasIncrementedToday=${hasIncrementedToday}`);
         renderTasks();
-        updateProgress(); // Check immediately if all lists are checked for increment
     }
 
     function deleteHabit(index) {
@@ -710,7 +705,6 @@ if (document.querySelector('.progress-circle')) {
         console.log(`Habit ${index} deleted, progress decreased by 1%`);
         updateBackendReminders();
         renderHabits();
-        updateProgress(); // Check after delete
     }
 
     function deleteTask(index) {
@@ -725,7 +719,6 @@ if (document.querySelector('.progress-circle')) {
         console.log(`Task ${index} deleted, progress decreased by 1%`);
         updateBackendReminders();
         renderTasks();
-        updateProgress(); // Check after delete
     }
 
     habitForm.addEventListener('submit', (e) => {
@@ -746,7 +739,6 @@ if (document.querySelector('.progress-circle')) {
             habitReminder.value = '';
             updateBackendReminders();
             renderHabits();
-            updateProgress(); // Check after add
         }
     });
 
@@ -768,7 +760,6 @@ if (document.querySelector('.progress-circle')) {
             taskReminder.value = '';
             updateBackendReminders();
             renderTasks();
-            updateProgress(); // Check after add
         }
     });
 
@@ -812,7 +803,6 @@ if (document.querySelector('.progress-circle')) {
     renderTasks();
     updateHabitChart();
     updateTaskChart();
-    updateProgress(); // Initial check
 }
 
 // Accessibility: Focus management
