@@ -672,36 +672,52 @@ if (document.querySelector('.progress-circle')) {
     }
 
     function toggleHabit(index) {
+        const wasCompleted = habits[index].completed;
         habits[index].completed = !habits[index].completed;
-        // On uncheck: Reset flag only if it makes the day incomplete (prevents duplicate increment on re-check)
+        console.log(`toggleHabit: index=${index}, completed=${habits[index].completed}, wasCompleted=${wasCompleted}, hasIncrementedToday=${hasIncrementedToday}`);
+
+        // On uncheck: Reset flag only if day becomes incomplete
         if (!habits[index].completed && hasIncrementedToday) {
             const allHabitsCompleted = habits.length > 0 && habits.every(h => h.completed);
             const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
             if (!allHabitsCompleted || !allTasksCompleted) {
                 hasIncrementedToday = false;
                 localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-                console.log(`Habit ${index} unchecked, day now incomplete - increment flag reset`);
+                console.log(`Habit ${index} unchecked, day now incomplete - reset hasIncrementedToday to false`);
             } else {
-                console.log(`Habit ${index} unchecked, but day still complete - flag remains true (no duplicate increment on re-check)`);
+                console.log(`Habit ${index} unchecked, but day still complete - hasIncrementedToday remains true`);
             }
         }
+        // On check: No immediate action, let updateProgress handle increment
+        if (habits[index].completed && !wasCompleted) {
+            console.log(`Habit ${index} checked, checking for increment in updateProgress`);
+        }
+
         renderHabits();
     }
 
     function toggleTask(index) {
+        const wasCompleted = tasks[index].completed;
         tasks[index].completed = !tasks[index].completed;
-        // On uncheck: Reset flag only if it makes the day incomplete (prevents duplicate increment on re-check)
+        console.log(`toggleTask: index=${index}, completed=${tasks[index].completed}, wasCompleted=${wasCompleted}, hasIncrementedToday=${hasIncrementedToday}`);
+
+        // On uncheck: Reset flag only if day becomes incomplete
         if (!tasks[index].completed && hasIncrementedToday) {
             const allHabitsCompleted = habits.length > 0 && habits.every(h => h.completed);
             const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
             if (!allHabitsCompleted || !allTasksCompleted) {
                 hasIncrementedToday = false;
                 localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-                console.log(`Task ${index} unchecked, day now incomplete - increment flag reset`);
+                console.log(`Task ${index} unchecked, day now incomplete - reset hasIncrementedToday to false`);
             } else {
-                console.log(`Task ${index} unchecked, but day still complete - flag remains true (no duplicate increment on re-check)`);
+                console.log(`Task ${index} unchecked, but day still complete - hasIncrementedToday remains true`);
             }
         }
+        // On check: No immediate action, let updateProgress handle increment
+        if (tasks[index].completed && !wasCompleted) {
+            console.log(`Task ${index} checked, checking for increment in updateProgress`);
+        }
+
         renderTasks();
     }
 
