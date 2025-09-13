@@ -15,7 +15,7 @@ if (document.querySelector('.progress-circle')) {
     let circleProgress = JSON.parse(localStorage.getItem('circleProgress')) || 0;
     let previousCircleProgress = JSON.parse(localStorage.getItem('previousCircleProgress')) || 0;
     let hasIncrementedToday = JSON.parse(localStorage.getItem('hasIncrementedToday')) || false;
-    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-11';
+    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-13';  // Updated default to current date: September 13, 2025
     let userTimezone = localStorage.getItem('userTimezone') || 'Asia/Jakarta';
     let draggedItem = null;
 
@@ -210,27 +210,27 @@ if (document.querySelector('.progress-circle')) {
         localStorage.setItem('taskHistory', JSON.stringify(taskHistory));
     }
 
-    // Check for new day and update if necessary
+    // Check for new day and update if necessary (1% decrement only for previous incomplete day)
     function checkForNewDay() {
         const today = DateTime.now().setZone(userTimezone).toISODate();
         if (currentDate !== today) {
             console.log(`New day detected: ${currentDate} -> ${today}`);
-            // Process previous day's completion
+            // Process previous day's completion (this day's status before reset)
             const allHabitsCompleted = habits.length > 0 && habits.every(h => h.completed);
             const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
             const hasItems = habits.length > 0 || tasks.length > 0;
 
             if (hasItems && (!allHabitsCompleted || !allTasksCompleted)) {
-                // Decrease progress by 1%
+                // Decrease by 1% only once for this incomplete day (at midnight transition)
                 previousCircleProgress = circleProgress;
                 circleProgress = Math.max(0, circleProgress - 1);
                 setProgress(circleProgress);
                 localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
                 localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
-                console.log(`Incomplete day, progress decreased by 1%: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}`);
+                console.log(`Previous day incomplete, 1% decrease applied once: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}`);
             }
 
-            // Reset habits, tasks, and increment flag
+            // Reset habits, tasks, and increment flag for new day
             habits = habits.map(habit => ({ ...habit, completed: false }));
             tasks = tasks.map(t => ({ ...t, completed: false }));
             hasIncrementedToday = false;
@@ -293,7 +293,7 @@ if (document.querySelector('.progress-circle')) {
         return [`${weekday} ${dateStr}`, 'Remaining'];
     }
 
-    // Update progress, history, and streak
+    // Update progress, history, and streak (1% increment only once per day if all completed)
     function updateProgress() {
         const completedHabits = habits.filter(h => h.completed).length;
         const habitProgress = habits.length ? (completedHabits / habits.length * 100) : 0;
@@ -318,6 +318,7 @@ if (document.querySelector('.progress-circle')) {
         const hasItems = habits.length > 0 || tasks.length > 0;
 
         if (allHabitsCompleted && allTasksCompleted && hasItems && !hasIncrementedToday && circleProgress < 100) {
+            // Increment by 1% only once for this day
             previousCircleProgress = circleProgress;
             circleProgress = Math.min(100, circleProgress + 1);
             hasIncrementedToday = true;
@@ -325,9 +326,9 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
             localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`All completed, incremented: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, hasIncrementedToday=${hasIncrementedToday}`);
+            console.log(`All completed today, 1% increment applied once: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, hasIncrementedToday=${hasIncrementedToday}`);
         } else {
-            console.log(`No increment: habits=${allHabitsCompleted}, tasks=${allTasksCompleted}, hasItems=${hasItems}, hasIncrementedToday=${hasIncrementedToday}`);
+            console.log(`No increment today: habits=${allHabitsCompleted}, tasks=${allTasksCompleted}, hasItems=${hasItems}, hasIncrementedToday=${hasIncrementedToday}`);
         }
         updateHabitChart();
         updateTaskChart();
@@ -673,28 +674,29 @@ if (document.querySelector('.progress-circle')) {
 
     function toggleHabit(index) {
         habits[index].completed = !habits[index].completed;
-        // No progress decrease on uncheck - only reset hasIncrementedToday if needed
+        // No progress change on toggle - only reset flag if unchecking after increment
         if (!habits[index].completed && hasIncrementedToday) {
             hasIncrementedToday = false;
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`Habit ${index} unchecked, increment flag reset`);
+            console.log(`Habit ${index} unchecked after increment, flag reset for today`);
         }
         renderHabits();
     }
 
     function toggleTask(index) {
         tasks[index].completed = !tasks[index].completed;
-        // No progress decrease on uncheck - only reset hasIncrementedToday if needed
+        // No progress change on toggle - only reset flag if unchecking after increment
         if (!tasks[index].completed && hasIncrementedToday) {
             hasIncrementedToday = false;
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`Task ${index} unchecked, increment flag reset`);
+            console.log(`Task ${index} unchecked after increment, flag reset for today`);
         }
         renderTasks();
     }
 
     function deleteHabit(index) {
         habits.splice(index, 1);
+        // Decrease by 1% for structural change (not tied to daily evaluation)
         previousCircleProgress = circleProgress;
         circleProgress = Math.max(0, circleProgress - 1);
         hasIncrementedToday = false;
@@ -709,6 +711,7 @@ if (document.querySelector('.progress-circle')) {
 
     function deleteTask(index) {
         tasks.splice(index, 1);
+        // Decrease by 1% for structural change (not tied to daily evaluation)
         previousCircleProgress = circleProgress;
         circleProgress = Math.max(0, circleProgress - 1);
         hasIncrementedToday = false;
@@ -727,6 +730,7 @@ if (document.querySelector('.progress-circle')) {
         const reminderTime = habitReminder.value;
         if (habitName) {
             habits.push({ name: habitName, completed: false, reminder: reminderTime || null });
+            // Decrease by 1% for structural change (not tied to daily evaluation)
             previousCircleProgress = circleProgress;
             circleProgress = Math.max(0, circleProgress - 1);
             hasIncrementedToday = false;
@@ -748,6 +752,7 @@ if (document.querySelector('.progress-circle')) {
         const reminderTime = taskReminder.value;
         if (taskName) {
             tasks.push({ name: taskName, completed: false, reminder: reminderTime || null });
+            // Decrease by 1% for structural change (not tied to daily evaluation)
             previousCircleProgress = circleProgress;
             circleProgress = Math.max(0, circleProgress - 1);
             hasIncrementedToday = false;
