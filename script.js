@@ -695,28 +695,14 @@ if (document.querySelector('.progress-circle')) {
 
     function deleteHabit(index) {
         habits.splice(index, 1);
-        previousCircleProgress = circleProgress;
-        circleProgress = Math.max(0, circleProgress - 1);
-        hasIncrementedToday = false;
-        setProgress(circleProgress);
-        localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
-        localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
-        localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-        console.log(`Habit ${index} deleted, progress decreased by 1%`);
+        console.log(`Habit ${index} deleted, no progress change`);
         updateBackendReminders();
         renderHabits();
     }
 
     function deleteTask(index) {
         tasks.splice(index, 1);
-        previousCircleProgress = circleProgress;
-        circleProgress = Math.max(0, circleProgress - 1);
-        hasIncrementedToday = false;
-        setProgress(circleProgress);
-        localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
-        localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
-        localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-        console.log(`Task ${index} deleted, progress decreased by 1%`);
+        console.log(`Task ${index} deleted, no progress change`);
         updateBackendReminders();
         renderTasks();
     }
