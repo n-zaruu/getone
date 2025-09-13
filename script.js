@@ -15,7 +15,6 @@ if (document.querySelector('.progress-circle')) {
     let circleProgress = JSON.parse(localStorage.getItem('circleProgress')) || 0;
     let previousCircleProgress = JSON.parse(localStorage.getItem('previousCircleProgress')) || 0;
     let hasIncrementedToday = JSON.parse(localStorage.getItem('hasIncrementedToday')) || false;
-    let progressIncrementedThisSession = JSON.parse(localStorage.getItem('progressIncrementedThisSession')) || false;
     let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-11';
     let userTimezone = localStorage.getItem('userTimezone') || 'Asia/Jakarta';
     let draggedItem = null;
@@ -231,15 +230,13 @@ if (document.querySelector('.progress-circle')) {
                 console.log(`Incomplete day, progress decreased by 1%: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}`);
             }
 
-            // Reset habits, tasks, flags
+            // Reset habits, tasks, and increment flag
             habits = habits.map(habit => ({ ...habit, completed: false }));
             tasks = tasks.map(t => ({ ...t, completed: false }));
             hasIncrementedToday = false;
-            progressIncrementedThisSession = false;
             localStorage.setItem('habits', JSON.stringify(habits));
             localStorage.setItem('tasks', JSON.stringify(tasks));
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            localStorage.setItem('progressIncrementedThisSession', JSON.stringify(progressIncrementedThisSession));
 
             // Update currentDate to today
             currentDate = today;
@@ -320,19 +317,17 @@ if (document.querySelector('.progress-circle')) {
         const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
         const hasItems = habits.length > 0 || tasks.length > 0;
 
-        if (allHabitsCompleted && allTasksCompleted && hasItems && !progressIncrementedThisSession && circleProgress < 100) {
+        if (allHabitsCompleted && allTasksCompleted && hasItems && !hasIncrementedToday && circleProgress < 100) {
             previousCircleProgress = circleProgress;
             circleProgress = Math.min(100, circleProgress + 1);
             hasIncrementedToday = true;
-            progressIncrementedThisSession = true;
             setProgress(circleProgress);
             localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
             localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            localStorage.setItem('progressIncrementedThisSession', JSON.stringify(progressIncrementedThisSession));
-            console.log(`All completed, incremented by 1%: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, progressIncrementedThisSession=${progressIncrementedThisSession}`);
+            console.log(`All completed, incremented: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, hasIncrementedToday=${hasIncrementedToday}`);
         } else {
-            console.log(`No increment: allHabits=${allHabitsCompleted}, allTasks=${allTasksCompleted}, hasItems=${hasItems}, progressIncrementedThisSession=${progressIncrementedThisSession}`);
+            console.log(`No increment: habits=${allHabitsCompleted}, tasks=${allTasksCompleted}, hasItems=${hasItems}, hasIncrementedToday=${hasIncrementedToday}`);
         }
         updateHabitChart();
         updateTaskChart();
@@ -494,4 +489,363 @@ if (document.querySelector('.progress-circle')) {
                 <ion-icon name="reorder-two-outline" class="drag-handle" title="Drag to reorder ${task.name}" aria-label="Drag to reorder ${task.name}"></ion-icon>
                 <input type="checkbox" id="task-${index}" ${task.completed ? 'checked' : ''} onchange="toggleTask(${index})" aria-label="Mark ${task.name} as completed">
                 <span ondblclick="startEdit(${index}, 'task')" aria-label="Double-click to edit ${task.name}">${task.name}${task.reminder ? ' <ion-icon name="alarm-outline" title="Daily reminder set"></ion-icon>' : ''}</span>
-                <input type="time" class="reminder-input" value="${task.reminder || ''}" onchange="updateReminder(${
+                <input type="time" class="reminder-input" value="${task.reminder || ''}" onchange="updateReminder(${index}, 'task', this.value)" aria-label="Set daily reminder time for ${task.name}">
+                <div>
+                    <button class="delete-btn" onclick="deleteTask(${index})" aria-label="Delete ${task.name}">Delete</button>
+                </div>
+            `;
+            taskList.appendChild(taskItem);
+        });
+
+        const taskItems = taskList.querySelectorAll('.task-item');
+        taskItems.forEach(item => {
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('drop', handleDrop);
+            item.addEventListener('dragend', handleDragEnd);
+            const dragHandle = item.querySelector('.drag-handle');
+            dragHandle.addEventListener('keydown', (e) => handleKeydown(e, 'task', item.getAttribute('data-index')));
+        });
+
+        updateProgress();
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function startEdit(index, type) {
+        const item = type === 'habit' ? habits[index] : tasks[index];
+        const itemElement = document.querySelector(`#${type}-${index}`).parentElement;
+        const span = itemElement.querySelector('span');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.classList.add('edit-input');
+        input.value = item.name;
+        input.setAttribute('aria-label', `Edit ${type} name`);
+        span.replaceWith(input);
+        input.focus();
+        input.select();
+
+        input.addEventListener('blur', () => saveEdit(index, type, input));
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                saveEdit(index, type, input);
+            } else if (e.key === 'Escape') {
+                cancelEdit(index, type, input);
+            }
+        });
+
+        console.log(`Started editing ${type} at index ${index}: ${item.name}`);
+    }
+
+    function saveEdit(index, type, input) {
+        const newName = input.value.trim();
+        if (newName) {
+            if (type === 'habit') {
+                habits[index].name = newName;
+                localStorage.setItem('habits', JSON.stringify(habits));
+            } else {
+                tasks[index].name = newName;
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+            updateBackendReminders();
+            console.log(`Saved ${type} at index ${index}: ${newName}`);
+        }
+        type === 'habit' ? renderHabits() : renderTasks();
+    }
+
+    function cancelEdit(index, type, input) {
+        type === 'habit' ? renderHabits() : renderTasks();
+        console.log(`Canceled editing ${type} at index ${index}`);
+    }
+
+    function updateReminder(index, type, reminderTime) {
+        if (type === 'habit') {
+            habits[index].reminder = reminderTime || null;
+            localStorage.setItem('habits', JSON.stringify(habits));
+        } else {
+            tasks[index].reminder = reminderTime || null;
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+        updateBackendReminders();
+        console.log(`Updated reminder for ${type} at index ${index}: ${reminderTime || 'none'}`);
+        type === 'habit' ? renderHabits() : renderTasks();
+    }
+
+    function moveHabitUp(index) {
+        if (index > 0) {
+            [habits[index], habits[index - 1]] = [habits[index - 1], habits[index]];
+            localStorage.setItem('habits', JSON.stringify(habits));
+            updateBackendReminders();
+            renderHabits();
+            console.log(`Habit moved up: index=${index}`);
+        }
+    }
+
+    function moveHabitDown(index) {
+        if (index < habits.length - 1) {
+            [habits[index], habits[index + 1]] = [habits[index + 1], habits[index]];
+            localStorage.setItem('habits', JSON.stringify(habits));
+            updateBackendReminders();
+            renderHabits();
+            console.log(`Habit moved down: index=${index}`);
+        }
+    }
+
+    function moveTaskUp(index) {
+        if (index > 0) {
+            [tasks[index], tasks[index - 1]] = [tasks[index - 1], tasks[index]];
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            updateBackendReminders();
+            renderTasks();
+            console.log(`Task moved up: index=${index}`);
+        }
+    }
+
+    function moveTaskDown(index) {
+        if (index < tasks.length - 1) {
+            [tasks[index], tasks[index + 1]] = [tasks[index + 1], tasks[index]];
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            updateBackendReminders();
+            renderTasks();
+            console.log(`Task moved down: index=${index}`);
+        }
+    }
+
+    function handleDragStart(e) {
+        draggedItem = e.target;
+        draggedItem.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedItem.getAttribute('data-index'));
+        console.log(`Drag started: index=${draggedItem.getAttribute('data-index')}`);
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        const targetItem = e.target.closest('.habit-item, .task-item');
+        if (!targetItem || targetItem === draggedItem) return;
+
+        const fromIndex = parseInt(draggedItem.getAttribute('data-index'));
+        const toIndex = parseInt(targetItem.getAttribute('data-index'));
+        const isHabit = draggedItem.classList.contains('habit-item');
+
+        if (isHabit) {
+            [habits[fromIndex], habits[toIndex]] = [habits[toIndex], habits[fromIndex]];
+            localStorage.setItem('habits', JSON.stringify(habits));
+            updateBackendReminders();
+            renderHabits();
+            console.log(`Habit dragged from index ${fromIndex} to ${toIndex}`);
+        } else {
+            [tasks[fromIndex], tasks[toIndex]] = [tasks[toIndex], tasks[fromIndex]];
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            updateBackendReminders();
+            renderTasks();
+            console.log(`Task dragged from index ${fromIndex} to ${toIndex}`);
+        }
+    }
+
+    function handleDragEnd(e) {
+        draggedItem.classList.remove('dragging');
+        draggedItem = null;
+    }
+
+    function handleKeydown(e, type, index) {
+        index = parseInt(index);
+        if (e.key === 'ArrowUp' && index > 0) {
+            e.preventDefault();
+            if (type === 'habit') {
+                moveHabitUp(index);
+            } else {
+                moveTaskUp(index);
+            }
+        } else if (e.key === 'ArrowDown' && index < (type === 'habit' ? habits.length - 1 : tasks.length - 1)) {
+            e.preventDefault();
+            if (type === 'habit') {
+                moveHabitDown(index);
+            } else {
+                moveTaskDown(index);
+            }
+        }
+    }
+
+    function toggleHabit(index) {
+        habits[index].completed = !habits[index].completed;
+        // On uncheck: Reset flag only if it makes the day incomplete (prevents duplicate increment on re-check)
+        if (!habits[index].completed && hasIncrementedToday) {
+            const allHabitsCompleted = habits.length > 0 && habits.every(h => h.completed);
+            const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
+            if (!allHabitsCompleted || !allTasksCompleted) {
+                hasIncrementedToday = false;
+                localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
+                console.log(`Habit ${index} unchecked, day now incomplete - increment flag reset`);
+            } else {
+                console.log(`Habit ${index} unchecked, but day still complete - flag remains true (no duplicate increment on re-check)`);
+            }
+        }
+        renderHabits();
+    }
+
+    function toggleTask(index) {
+        tasks[index].completed = !tasks[index].completed;
+        // On uncheck: Reset flag only if it makes the day incomplete (prevents duplicate increment on re-check)
+        if (!tasks[index].completed && hasIncrementedToday) {
+            const allHabitsCompleted = habits.length > 0 && habits.every(h => h.completed);
+            const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
+            if (!allHabitsCompleted || !allTasksCompleted) {
+                hasIncrementedToday = false;
+                localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
+                console.log(`Task ${index} unchecked, day now incomplete - increment flag reset`);
+            } else {
+                console.log(`Task ${index} unchecked, but day still complete - flag remains true (no duplicate increment on re-check)`);
+            }
+        }
+        renderTasks();
+    }
+
+    function deleteHabit(index) {
+        habits.splice(index, 1);
+        previousCircleProgress = circleProgress;
+        circleProgress = Math.max(0, circleProgress - 1);
+        hasIncrementedToday = false;
+        setProgress(circleProgress);
+        localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+        localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+        localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
+        console.log(`Habit ${index} deleted, progress decreased by 1%`);
+        updateBackendReminders();
+        renderHabits();
+    }
+
+    function deleteTask(index) {
+        tasks.splice(index, 1);
+        previousCircleProgress = circleProgress;
+        circleProgress = Math.max(0, circleProgress - 1);
+        hasIncrementedToday = false;
+        setProgress(circleProgress);
+        localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+        localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+        localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
+        console.log(`Task ${index} deleted, progress decreased by 1%`);
+        updateBackendReminders();
+        renderTasks();
+    }
+
+    habitForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const habitName = habitInput.value.trim();
+        const reminderTime = habitReminder.value;
+        if (habitName) {
+            habits.push({ name: habitName, completed: false, reminder: reminderTime || null });
+            previousCircleProgress = circleProgress;
+            circleProgress = Math.max(0, circleProgress - 1);
+            hasIncrementedToday = false;
+            setProgress(circleProgress);
+            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
+            console.log(`New habit added: ${habitName}, reminder: ${reminderTime || 'none'}, progress decreased by 1%`);
+            habitInput.value = '';
+            habitReminder.value = '';
+            updateBackendReminders();
+            renderHabits();
+        }
+    });
+
+    taskForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const taskName = taskInput.value.trim();
+        const reminderTime = taskReminder.value;
+        if (taskName) {
+            tasks.push({ name: taskName, completed: false, reminder: reminderTime || null });
+            previousCircleProgress = circleProgress;
+            circleProgress = Math.max(0, circleProgress - 1);
+            hasIncrementedToday = false;
+            setProgress(circleProgress);
+            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
+            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
+            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
+            console.log(`New task added: ${taskName}, reminder: ${reminderTime || 'none'}, progress decreased by 1%`);
+            taskInput.value = '';
+            taskReminder.value = '';
+            updateBackendReminders();
+            renderTasks();
+        }
+    });
+
+    // Reset Charts (to current week for habits)
+    resetChart.addEventListener('click', () => {
+        chartOffset = 0;
+        localStorage.setItem('chartOffset', JSON.stringify(chartOffset));
+        updateHabitChart();
+    });
+
+    // Remove task chart reset button functionality as we only show current day
+    taskResetChart.classList.add('hidden');
+
+    // Swipe Gestures for Habit Chart
+    let habitTouchStartX = 0;
+    let habitTouchEndX = 0;
+
+    habitChartContainer.addEventListener('touchstart', (e) => {
+        habitTouchStartX = e.changedTouches[0].screenX;
+    });
+
+    habitChartContainer.addEventListener('touchend', (e) => {
+        habitTouchEndX = e.changedTouches[0].screenX;
+        const swipeDistance = habitTouchEndX - habitTouchStartX;
+        const minSwipeDistance = 50;
+        if (swipeDistance > minSwipeDistance) {
+            chartOffset -= 7;
+            localStorage.setItem('chartOffset', JSON.stringify(chartOffset));
+            updateHabitChart();
+        } else if (swipeDistance < -minSwipeDistance) {
+            chartOffset += 7;
+            localStorage.setItem('chartOffset', JSON.stringify(chartOffset));
+            updateHabitChart();
+        }
+    });
+
+    // Initial setup
+    getUserTimezone();
+    setProgress(circleProgress);
+    renderHabits();
+    renderTasks();
+    updateHabitChart();
+    updateTaskChart();
+}
+
+// Accessibility: Focus management
+document.querySelectorAll('button:not(.progress-ring__circle, .circle-text), input:not(.progress-ring__circle, .circle-text), ion-icon.drag-handle, a.learn-more').forEach(el => {
+    el.addEventListener('focus', () => {
+        el.style.outline = '2px solid #4CAF50';
+    });
+    el.addEventListener('blur', () => {
+        el.style.outline = 'none';
+    });
+});
+
+// Navbar link active state handling
+function setActiveNavLink() {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    document.querySelectorAll('.navbar-links ul li a').forEach(link => {
+        link.classList.remove('active');
+        const href = link.getAttribute('href');
+        if (href === currentPage) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// Set active link on page load
+document.addEventListener('DOMContentLoaded', setActiveNavLink);
+
+// Handle click events to update active state
+document.querySelectorAll('.navbar-links ul li a').forEach(link => {
+    link.addEventListener('click', (e) => {
+        document.querySelectorAll('.navbar-links ul li a').forEach(l => l.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
+});
