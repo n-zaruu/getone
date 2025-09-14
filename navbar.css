@@ -1,7 +1,3 @@
-p {
-    text-align: center;
-}
-
 /* Navbar Header (Top Heading) */
 .navbar-header {
     position: fixed;
@@ -17,56 +13,121 @@ p {
     z-index: 1000;
 }
 
-/* Navbar Links (Bottom Navigation) */
+/* Navbar Links (Sticky Bottom) */
 .navbar-links {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    padding: 5px 35px;
     background: #222;
-    padding: 10px 40px;
-    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure navbar stays above other content */
+}
+
+/* Adjust container to prevent overlap with fixed navbar */
+body {
+    padding-bottom: 80px; /* Adjust based on navbar height to prevent content overlap */
 }
 
 .navbar-links ul {
-    list-style: none;
     display: flex;
+    width: 350px;
     justify-content: center;
-    gap: 100px;
-    margin: 0;
+    align-items: center;
 }
 
 .navbar-links ul li {
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    justify-content: center;
     align-items: center;
-    gap: 5px;
+    width: 70px;
+    height: 70px;
+    list-style: none;
+    z-index: 1;
+    margin-left: 50px;
+    margin-right: 50px;
 }
 
 .navbar-links ul li a {
-    color: white;
-    text-decoration: none;
-    font-size: 1.2rem;
-    transition: color 0.3s;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100%;
+    text-align: center;
+    font-weight: 500;
 }
 
-.navbar-links ul li a:hover {
-    color: #81C784;
+.navbar-links ul li a .icon {
+    position: relative;
+    display: block;
+    line-height: 75px;
+    font-size: 1.5em;
+    text-align: center;
+    color: #fff;
+    transition: .5s;
 }
 
-.navbar-links ul li a.active {
-    color: #81C784;
+.navbar-links ul li.active a .icon {
+    transform: translateY(-31.5px);
 }
 
-@media (max-width: 600px) {
-    .navbar-links {
-        padding: 10px 20px;
-    }
-    .navbar-links ul {
-        flex-direction: row;
-        gap: 15px;
-    }
-    .navbar-links ul li a {
-        font-size: 0.9rem;
-    }
+.navbar-links ul li a .text {
+    position: absolute;
+    color: #fff;
+    font-weight: 700;
+    font-size: .85em;
+    letter-spacing: .5px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: .5s;
+}
+
+.navbar-links ul li.active a .text {
+    opacity: 1;
+    transform: translateY(15px);
+}
+
+.navbar-links ul li a .circle {
+    position: absolute;
+    display: block;
+    width: 50px;
+    height: 50px;
+    background: transparent;
+    border-radius: 50%;
+    border: 1.8px solid #fff;
+    transform: translateY(-31.5px) scale(0);
+}
+
+.navbar-links ul li.active a .circle {
+    transition: .5s;
+    transition-delay: .5s;
+    transform: translateY(-31.5px) scale(1);
+}
+
+.indicator {
+    position: absolute;
+    top: -30px;
+    width: 70px;
+    height: 70px;
+    background: #222;
+    border: 10px solid transparent;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: .5s;
+}
+
+/* Remove .navigation class as it's not used in your HTML */
+.navbar-links ul li:nth-child(1).active~.indicator {
+    transform: translateX(calc(70px * 0));
+}
+
+.navbar-links ul li:nth-child(2).active~.indicator {
+    transform: translateX(calc(70px * 1));
 }
