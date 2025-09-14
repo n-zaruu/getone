@@ -15,7 +15,7 @@ if (document.querySelector('.progress-circle')) {
     let circleProgress = JSON.parse(localStorage.getItem('circleProgress')) || 0;
     let previousCircleProgress = JSON.parse(localStorage.getItem('previousCircleProgress')) || 0;
     let hasIncrementedToday = JSON.parse(localStorage.getItem('hasIncrementedToday')) || false;
-    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-11';
+    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-15';
     let userTimezone = localStorage.getItem('userTimezone') || 'Asia/Jakarta';
     let draggedItem = null;
 
@@ -221,9 +221,9 @@ if (document.querySelector('.progress-circle')) {
             const hasItems = habits.length > 0 || tasks.length > 0;
 
             if (hasItems && (!allHabitsCompleted || !allTasksCompleted)) {
-                // Decrease progress by 1%
+                // Decrease progress by 1%, allow negative
                 previousCircleProgress = circleProgress;
-                circleProgress = Math.max(0, circleProgress - 1);
+                circleProgress = circleProgress - 1;
                 setProgress(circleProgress);
                 localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
                 localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
