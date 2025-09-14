@@ -713,14 +713,7 @@ if (document.querySelector('.progress-circle')) {
         const reminderTime = habitReminder.value;
         if (habitName) {
             habits.push({ name: habitName, completed: false, reminder: reminderTime || null });
-            previousCircleProgress = circleProgress;
-            circleProgress = Math.max(0, circleProgress - 1);
-            hasIncrementedToday = false;
-            setProgress(circleProgress);
-            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
-            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
-            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`New habit added: ${habitName}, reminder: ${reminderTime || 'none'}, progress decreased by 1%`);
+            console.log(`New habit added: ${habitName}, reminder: ${reminderTime || 'none'}, no progress change`);
             habitInput.value = '';
             habitReminder.value = '';
             updateBackendReminders();
@@ -734,14 +727,7 @@ if (document.querySelector('.progress-circle')) {
         const reminderTime = taskReminder.value;
         if (taskName) {
             tasks.push({ name: taskName, completed: false, reminder: reminderTime || null });
-            previousCircleProgress = circleProgress;
-            circleProgress = Math.max(0, circleProgress - 1);
-            hasIncrementedToday = false;
-            setProgress(circleProgress);
-            localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
-            localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
-            localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`New task added: ${taskName}, reminder: ${reminderTime || 'none'}, progress decreased by 1%`);
+            console.log(`New task added: ${taskName}, reminder: ${reminderTime || 'none'}, no progress change`);
             taskInput.value = '';
             taskReminder.value = '';
             updateBackendReminders();
