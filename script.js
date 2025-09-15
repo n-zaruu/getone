@@ -15,7 +15,7 @@ if (document.querySelector('.progress-circle')) {
     let circleProgress = JSON.parse(localStorage.getItem('circleProgress')) || 0;
     let previousCircleProgress = JSON.parse(localStorage.getItem('previousCircleProgress')) || 0;
     let hasIncrementedToday = JSON.parse(localStorage.getItem('hasIncrementedToday')) || false;
-    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-15';
+    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-16';
     let userTimezone = localStorage.getItem('userTimezone') || 'Asia/Jakarta';
     let draggedItem = null;
 
@@ -230,13 +230,14 @@ if (document.querySelector('.progress-circle')) {
                 console.log(`Incomplete day, progress decreased by 1%: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}`);
             }
 
-            // Reset habits, tasks, and increment flag
+            // Reset habits and tasks to unchecked
             habits = habits.map(habit => ({ ...habit, completed: false }));
             tasks = tasks.map(t => ({ ...t, completed: false }));
             hasIncrementedToday = false;
             localStorage.setItem('habits', JSON.stringify(habits));
             localStorage.setItem('tasks', JSON.stringify(tasks));
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
+            console.log(`All habits and tasks unchecked for new day`);
 
             // Update currentDate to today
             currentDate = today;
