@@ -15,7 +15,7 @@ if (document.querySelector('.progress-circle')) {
     let circleProgress = JSON.parse(localStorage.getItem('circleProgress')) || 0;
     let previousCircleProgress = JSON.parse(localStorage.getItem('previousCircleProgress')) || 0;
     let hasIncrementedToday = JSON.parse(localStorage.getItem('hasIncrementedToday')) || false;
-    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-16';
+    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-17';
     let userTimezone = localStorage.getItem('userTimezone') || 'Asia/Jakarta';
     let draggedItem = null;
 
@@ -437,8 +437,11 @@ if (document.querySelector('.progress-circle')) {
     });
 
     function updateHabitChart() {
-        historyChart.data.labels = getChartLabels(chartOffset);
-        historyChart.data.datasets[0].data = getChartData(history, chartOffset);
+        const labels = getChartLabels(chartOffset);
+        const data = getChartData(history, chartOffset);
+        console.log(`updateHabitChart: labels=${labels.join(', ')}, data=${data.join(', ')}`);
+        historyChart.data.labels = labels;
+        historyChart.data.datasets[0].data = data;
         historyChart.data.datasets[0].borderColor = history[currentDate] === 100 ? '#4CAF50' : '#E57373';
         historyChart.data.datasets[0].backgroundColor = history[currentDate] === 100 ? 'rgba(76, 175, 80, 0.2)' : 'rgba(229, 115, 115, 0.2)';
         historyChart.update();
