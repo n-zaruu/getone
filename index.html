@@ -69,8 +69,18 @@
             </div>
         </section>
     </section>
+    
+<section class="calendar-section">
+    <h2>Plan Tracker</h2>
+    <form id="calendar-form">
+        <input type="text" id="calendar-activity" placeholder="Add a new task..." aria-label="Enter activity">
+        <input type="datetime-local" id="calendar-datetime" aria-label="Select date and time for activity" required>
+        <button type="submit" aria-label="Add activity to task tracker">Add Task</button>
+    </form>
+    <div id="calendar-task-list" role="list" aria-label="List of all scheduled tasks"></div>
+</section>
 
-    <nav class="navbar-links">
+   <!-- <nav class="navbar-links">
         <ul>
             <li class="item active">
                 <a href="index.html">
@@ -94,7 +104,7 @@
                 </a>
             </li>
         </ul>
-    </nav>
+    </nav> -->
 
     <script src="script.js"></script>
 </body>
