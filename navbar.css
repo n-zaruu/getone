@@ -11,9 +11,9 @@
     background: #222;
     color: white;
     z-index: 1000;
-}
+} 
 
-/* Navbar Links (Sticky Bottom) */
+/* Navbar Links (Sticky Bottom) 
 .navbar-links {
     position: fixed;
     bottom: 0;
@@ -24,12 +24,12 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Ensure navbar stays above other content */
+    z-index: 1000; /* Ensure navbar stays above other content 
 }
 
-/* Adjust container to prevent overlap with fixed navbar */
+/* Adjust container to prevent overlap with fixed navbar 
 body {
-    padding-bottom: 80px; /* Adjust based on navbar height to prevent content overlap */
+    padding-bottom: 80px; /* Adjust based on navbar height to prevent content overlap 
 }
 
 .navbar-links ul {
@@ -123,11 +123,11 @@ body {
     transition: .5s;
 }
 
-/* Remove .navigation class as it's not used in your HTML */
+/* Remove .navigation class as it's not used in your HTML
 .navbar-links ul li:nth-child(1).active~.indicator {
     transform: translateX(calc(70px * 0));
 }
 
 .navbar-links ul li:nth-child(2).active~.indicator {
     transform: translateX(calc(70px * 1));
-}
+} */
