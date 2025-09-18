@@ -15,7 +15,7 @@ if (document.querySelector('.progress-circle')) {
     let circleProgress = JSON.parse(localStorage.getItem('circleProgress')) || 0;
     let previousCircleProgress = JSON.parse(localStorage.getItem('previousCircleProgress')) || 0;
     let hasIncrementedToday = JSON.parse(localStorage.getItem('hasIncrementedToday')) || false;
-    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || '2025-09-17';
+    let currentDate = JSON.parse(localStorage.getItem('currentDate')) || DateTime.now().setZone('Asia/Jakarta').toISODate();
     let userTimezone = localStorage.getItem('userTimezone') || 'Asia/Jakarta';
     let draggedItem = null;
 
@@ -29,12 +29,14 @@ if (document.querySelector('.progress-circle')) {
                     console.log(`Timezone set to: ${userTimezone}`);
                     checkForNewDay();
                     updateDateDisplay();
+                    setCalendarMinDate();
                     registerServiceWorker();
                 },
                 error => {
                     console.warn('Geolocation access denied or unavailable, using default timezone:', userTimezone);
                     checkForNewDay();
                     updateDateDisplay();
+                    setCalendarMinDate();
                     registerServiceWorker();
                 }
             );
@@ -42,7 +44,19 @@ if (document.querySelector('.progress-circle')) {
             console.warn('Geolocation not supported, using default timezone:', userTimezone);
             checkForNewDay();
             updateDateDisplay();
+            setCalendarMinDate();
             registerServiceWorker();
+        }
+    }
+
+    // Set minimum date for calendar to current date/time
+    function setCalendarMinDate() {
+        const now = DateTime.now().setZone(userTimezone);
+        const minDateTime = now.toFormat("yyyy-MM-dd'T'HH:mm");
+        const calendarDatetime = document.getElementById('calendar-datetime');
+        if (calendarDatetime) {
+            calendarDatetime.setAttribute('min', minDateTime);
+            console.log(`Set calendar min datetime to: ${minDateTime}`);
         }
     }
 
@@ -128,7 +142,7 @@ if (document.querySelector('.progress-circle')) {
     async function updateBackendReminders() {
         const reminders = [
             ...habits.map((habit, index) => ({ type: 'habit', index, time: habit.reminder, name: habit.name })),
-            ...tasks.map((task, index) => ({ type: 'task', index, time: task.reminder, name: task.name }))
+            ...tasks.map((task, index) => ({ type: 'task', index, time: task.reminder, name: task.name, date: task.date }))
         ].filter(reminder => reminder.time);
         try {
             await fetch('/update-reminders', {
@@ -155,6 +169,7 @@ if (document.querySelector('.progress-circle')) {
         currentDateElement.textContent = formattedDate;
         currentDateElement.setAttribute('aria-label', `Current date: ${formattedDate}`);
         console.log(`updateDateDisplay: Set date to ${formattedDate} (${currentDate})`);
+        setCalendarMinDate();
     }
 
     // Habit Tracker
@@ -176,6 +191,12 @@ if (document.querySelector('.progress-circle')) {
     const taskProgressText = document.getElementById('task-progress-text');
     const taskResetChart = document.getElementById('task-reset-chart');
     const taskChartContainer = document.querySelector('.task-tracker .chart-container');
+
+    // Calendar
+    const calendarForm = document.getElementById('calendar-form');
+    const calendarDatetime = document.getElementById('calendar-datetime');
+    const calendarActivity = document.getElementById('calendar-activity');
+    const calendarTaskList = document.getElementById('calendar-task-list');
 
     let habits = JSON.parse(localStorage.getItem('habits')) || [];
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
@@ -217,27 +238,34 @@ if (document.querySelector('.progress-circle')) {
             console.log(`New day detected: ${currentDate} -> ${today}`);
             // Process previous day's completion
             const allHabitsCompleted = habits.length > 0 && habits.every(h => h.completed);
-            const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
-            const hasItems = habits.length > 0 || tasks.length > 0;
+            const todayTasks = tasks.filter(t => t.date === currentDate);
+            const allTasksCompleted = todayTasks.length > 0 && todayTasks.every(t => t.completed);
+            const hasItems = habits.length > 0 || todayTasks.length > 0;
 
             if (hasItems && (!allHabitsCompleted || !allTasksCompleted)) {
-                // Decrease progress by 1%, allow negative
                 previousCircleProgress = circleProgress;
-                circleProgress = circleProgress - 1;
+                circleProgress = Math.max(-100, circleProgress - 1); // Prevent negative overflow
                 setProgress(circleProgress);
                 localStorage.setItem('circleProgress', JSON.stringify(circleProgress));
                 localStorage.setItem('previousCircleProgress', JSON.stringify(previousCircleProgress));
                 console.log(`Incomplete day, progress decreased by 1%: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}`);
             }
 
-            // Reset habits and tasks to unchecked
+            // Remove completed tasks for the previous day only
+            const previousTasksCount = tasks.length;
+            tasks = tasks.filter(t => !t.completed || t.date !== currentDate);
+            console.log(`Removed ${previousTasksCount - tasks.length} completed tasks for ${currentDate}`);
+
+            // Reset habits and today's tasks
             habits = habits.map(habit => ({ ...habit, completed: false }));
-            tasks = tasks.map(t => ({ ...t, completed: false }));
+            tasks = tasks.map(t => ({
+                ...t,
+                completed: t.date === today ? false : t.completed // Reset only today's tasks
+            }));
             hasIncrementedToday = false;
             localStorage.setItem('habits', JSON.stringify(habits));
             localStorage.setItem('tasks', JSON.stringify(tasks));
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
-            console.log(`All habits and tasks unchecked for new day`);
 
             // Update currentDate to today
             currentDate = today;
@@ -247,8 +275,10 @@ if (document.querySelector('.progress-circle')) {
             updateDateDisplay();
             renderHabits();
             renderTasks();
+            renderCalendarTasks();
             updateHabitChart();
             updateTaskChart();
+            updateBackendReminders();
         }
     }
 
@@ -276,6 +306,7 @@ if (document.querySelector('.progress-circle')) {
             const dateStr = date.toISODate();
             data.push(historyData[dateStr] !== undefined ? historyData[dateStr] : 0);
         }
+        console.log(`Habit chart data for offset ${offset}:`, data);
         return data;
     }
 
@@ -304,9 +335,12 @@ if (document.querySelector('.progress-circle')) {
         progressFill.parentElement.setAttribute('aria-valuenow', habitProgress.toFixed(1));
         history[currentDate] = habitProgress;
         localStorage.setItem('habitHistory', JSON.stringify(history));
+        console.log(`Habit progress updated for ${currentDate}: ${habitProgress}%`);
 
-        const completedTasks = tasks.filter(t => t.completed).length;
-        const taskProgress = tasks.length ? (completedTasks / tasks.length * 100) : 0;
+        // Calculate task progress only for current day's tasks
+        const todayTasks = tasks.filter(t => t.date === currentDate);
+        const completedTasks = todayTasks.filter(t => t.completed).length;
+        const taskProgress = todayTasks.length ? (completedTasks / todayTasks.length * 100) : 0;
         taskProgressFill.style.width = `${taskProgress}%`;
         taskProgressFill.style.backgroundColor = taskProgress === 100 ? '#4CAF50' : '#E57373';
         taskProgressText.textContent = `Progress: ${taskProgress.toFixed(1)}%`;
@@ -315,11 +349,10 @@ if (document.querySelector('.progress-circle')) {
         localStorage.setItem('taskHistory', JSON.stringify(taskHistory));
 
         const allHabitsCompleted = habits.length > 0 && habits.every(h => h.completed);
-        const allTasksCompleted = tasks.length > 0 && tasks.every(t => t.completed);
-        const hasItems = habits.length > 0 || tasks.length > 0;
+        const allTasksCompleted = todayTasks.length > 0 && todayTasks.every(t => t.completed);
+        const hasItems = habits.length > 0 || todayTasks.length > 0;
 
         if (allHabitsCompleted && allTasksCompleted && hasItems && !hasIncrementedToday && circleProgress < 100) {
-            // Increase by 1% and lock in
             previousCircleProgress = circleProgress;
             circleProgress = Math.min(100, circleProgress + 1);
             hasIncrementedToday = true;
@@ -329,7 +362,6 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('hasIncrementedToday', JSON.stringify(hasIncrementedToday));
             console.log(`All completed, incremented: circleProgress=${circleProgress}, previousCircleProgress=${previousCircleProgress}, hasIncrementedToday=${hasIncrementedToday}`);
         } else if (hasIncrementedToday && (!allHabitsCompleted || !allTasksCompleted)) {
-            // Revert to previous if any unchecked after increment
             circleProgress = previousCircleProgress;
             hasIncrementedToday = false;
             setProgress(circleProgress);
@@ -437,15 +469,13 @@ if (document.querySelector('.progress-circle')) {
     });
 
     function updateHabitChart() {
-        const labels = getChartLabels(chartOffset);
-        const data = getChartData(history, chartOffset);
-        console.log(`updateHabitChart: labels=${labels.join(', ')}, data=${data.join(', ')}`);
-        historyChart.data.labels = labels;
-        historyChart.data.datasets[0].data = data;
+        historyChart.data.labels = getChartLabels(chartOffset);
+        historyChart.data.datasets[0].data = getChartData(history, chartOffset);
         historyChart.data.datasets[0].borderColor = history[currentDate] === 100 ? '#4CAF50' : '#E57373';
         historyChart.data.datasets[0].backgroundColor = history[currentDate] === 100 ? 'rgba(76, 175, 80, 0.2)' : 'rgba(229, 115, 115, 0.2)';
         historyChart.update();
         resetChart.classList.toggle('hidden', chartOffset === 0);
+        console.log(`Habit chart updated for offset ${chartOffset}`);
     }
 
     function updateTaskChart() {
@@ -493,22 +523,42 @@ if (document.querySelector('.progress-circle')) {
 
     function renderTasks() {
         taskList.innerHTML = '';
-        tasks.forEach((task, index) => {
+        // Show all incomplete tasks (any date) and all tasks for today
+        const displayTasks = tasks.filter(t => !t.completed || t.date === currentDate);
+        displayTasks.sort((a, b) => {
+            // Sort by date (older first), then by name for same date
+            const dateA = DateTime.fromISO(a.date, { zone: userTimezone });
+            const dateB = DateTime.fromISO(b.date, { zone: userTimezone });
+            if (dateA < dateB) return -1;
+            if (dateA > dateB) return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        console.log(`renderTasks: Displaying ${displayTasks.length} tasks (incomplete or today), currentDate=${currentDate}, tasks=`, displayTasks);
+
+        displayTasks.forEach((task, index) => {
+            const globalIndex = tasks.findIndex(t => t === task);
+            if (globalIndex === -1) {
+                console.error(`Task not found in tasks array: ${task.name}, date=${task.date}`);
+                return;
+            }
             const taskItem = document.createElement('div');
             taskItem.classList.add('task-item');
             taskItem.setAttribute('role', 'listitem');
             taskItem.setAttribute('draggable', 'true');
-            taskItem.setAttribute('data-index', index);
+            taskItem.setAttribute('data-index', globalIndex);
+            taskItem.setAttribute('data-date', task.date);
             taskItem.innerHTML = `
                 <ion-icon name="reorder-two-outline" class="drag-handle" title="Drag to reorder ${task.name}" aria-label="Drag to reorder ${task.name}"></ion-icon>
-                <input type="checkbox" id="task-${index}" ${task.completed ? 'checked' : ''} onchange="toggleTask(${index})" aria-label="Mark ${task.name} as completed">
-                <span ondblclick="startEdit(${index}, 'task')" aria-label="Double-click to edit ${task.name}">${task.name}${task.reminder ? ' <ion-icon name="alarm-outline" title="Daily reminder set"></ion-icon>' : ''}</span>
-                <input type="time" class="reminder-input" value="${task.reminder || ''}" onchange="updateReminder(${index}, 'task', this.value)" aria-label="Set daily reminder time for ${task.name}">
+                <input type="checkbox" id="task-${globalIndex}" ${task.completed ? 'checked' : ''} onchange="toggleTask(${globalIndex})" aria-label="Mark ${task.name} as completed">
+                <span ondblclick="startEdit(${globalIndex}, 'task')" aria-label="Double-click to edit ${task.name}" title="Task date: ${task.date}">${task.name}${task.reminder ? ' <ion-icon name="alarm-outline" title="Daily reminder set"></ion-icon>' : ''}</span>
+                <input type="time" class="reminder-input" value="${task.reminder || ''}" onchange="updateReminder(${globalIndex}, 'task', this.value)" aria-label="Set daily reminder time for ${task.name}">
                 <div>
-                    <button class="delete-btn" onclick="deleteTask(${index})" aria-label="Delete ${task.name}">Delete</button>
+                    <button class="delete-btn" onclick="deleteTask(${globalIndex})" aria-label="Delete ${task.name}">Delete</button>
                 </div>
             `;
             taskList.appendChild(taskItem);
+            console.log(`Task rendered: name=${task.name}, date=${task.date}, completed=${task.completed}, globalIndex=${globalIndex}`);
         });
 
         const taskItems = taskList.querySelectorAll('.task-item');
@@ -525,10 +575,43 @@ if (document.querySelector('.progress-circle')) {
         localStorage.setItem('tasks', JSON.stringify(tasks));
     }
 
+    function renderCalendarTasks() {
+        calendarTaskList.innerHTML = '';
+        tasks.forEach((task, index) => {
+            const dateTime = DateTime.fromISO(task.date, { zone: userTimezone });
+            const formattedDate = dateTime.toLocaleString(DateTime.DATE_SHORT);
+            const formattedTime = task.reminder ? dateTime.set({ hour: parseInt(task.reminder.split(':')[0]), minute: parseInt(task.reminder.split(':')[1]) }).toLocaleString(DateTime.TIME_SIMPLE) : '';
+            const displayText = formattedTime ? `${formattedDate} ${formattedTime}` : formattedDate;
+            const reminderTitle = task.reminder ? `Reminder set for ${formattedTime}` : 'No reminder set';
+            const taskItem = document.createElement('div');
+            taskItem.classList.add('calendar-task-item');
+            taskItem.setAttribute('role', 'listitem');
+            taskItem.setAttribute('draggable', 'true');
+            taskItem.setAttribute('data-index', index);
+            taskItem.innerHTML = `
+                <ion-icon name="reorder-two-outline" class="drag-handle" title="Drag to reorder ${task.name}" aria-label="Drag to reorder ${task.name}"></ion-icon>
+                <span ondblclick="startEdit(${index}, 'task')" aria-label="Double-click to edit ${task.name}">${task.name}${task.reminder ? ' <ion-icon name="alarm-outline" title="${reminderTitle}"></ion-icon>' : ''}</span>
+                <span class="task-date">${displayText}</span>
+                <button class="delete-btn" onclick="deleteTask(${index})" aria-label="Delete ${task.name}">Delete</button>
+            `;
+            calendarTaskList.appendChild(taskItem);
+        });
+
+        const calendarTaskItems = calendarTaskList.querySelectorAll('.calendar-task-item');
+        calendarTaskItems.forEach(item => {
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('drop', handleDrop);
+            item.addEventListener('dragend', handleDragEnd);
+            const dragHandle = item.querySelector('.drag-handle');
+            dragHandle.addEventListener('keydown', (e) => handleKeydown(e, 'calendar-task', item.getAttribute('data-index')));
+        });
+    }
+
     function startEdit(index, type) {
         const item = type === 'habit' ? habits[index] : tasks[index];
-        const itemElement = document.querySelector(`#${type}-${index}`).parentElement;
-        const span = itemElement.querySelector('span');
+        const itemElement = document.querySelector(`#${type}-${index}`)?.parentElement || document.querySelector(`#calendar-task-list .calendar-task-item:nth-child(${index + 1})`);
+        const span = itemElement.querySelector('span:not(.task-date)');
         const input = document.createElement('input');
         input.type = 'text';
         input.classList.add('edit-input');
@@ -563,11 +646,11 @@ if (document.querySelector('.progress-circle')) {
             updateBackendReminders();
             console.log(`Saved ${type} at index ${index}: ${newName}`);
         }
-        type === 'habit' ? renderHabits() : renderTasks();
+        type === 'habit' ? renderHabits() : (renderTasks(), renderCalendarTasks());
     }
 
     function cancelEdit(index, type, input) {
-        type === 'habit' ? renderHabits() : renderTasks();
+        type === 'habit' ? renderHabits() : (renderTasks(), renderCalendarTasks());
         console.log(`Canceled editing ${type} at index ${index}`);
     }
 
@@ -581,7 +664,7 @@ if (document.querySelector('.progress-circle')) {
         }
         updateBackendReminders();
         console.log(`Updated reminder for ${type} at index ${index}: ${reminderTime || 'none'}`);
-        type === 'habit' ? renderHabits() : renderTasks();
+        type === 'habit' ? renderHabits() : (renderTasks(), renderCalendarTasks());
     }
 
     function moveHabitUp(index) {
@@ -605,22 +688,54 @@ if (document.querySelector('.progress-circle')) {
     }
 
     function moveTaskUp(index) {
+        const displayTasks = tasks.filter(t => !t.completed || t.date === currentDate);
+        const globalIndex = index;
+        const localIndex = displayTasks.findIndex(t => tasks.indexOf(t) === index);
+        if (localIndex > 0) {
+            const prevTaskIndex = tasks.indexOf(displayTasks[localIndex - 1]);
+            [tasks[globalIndex], tasks[prevTaskIndex]] = [tasks[prevTaskIndex], tasks[globalIndex]];
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            updateBackendReminders();
+            renderTasks();
+            renderCalendarTasks();
+            console.log(`Task moved up: globalIndex=${globalIndex}, localIndex=${localIndex}`);
+        }
+    }
+
+    function moveTaskDown(index) {
+        const displayTasks = tasks.filter(t => !t.completed || t.date === currentDate);
+        const globalIndex = index;
+        const localIndex = displayTasks.findIndex(t => tasks.indexOf(t) === index);
+        if (localIndex < displayTasks.length - 1) {
+            const nextTaskIndex = tasks.indexOf(displayTasks[localIndex + 1]);
+            [tasks[globalIndex], tasks[nextTaskIndex]] = [tasks[nextTaskIndex], tasks[globalIndex]];
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            updateBackendReminders();
+            renderTasks();
+            renderCalendarTasks();
+            console.log(`Task moved down: globalIndex=${globalIndex}, localIndex=${localIndex}`);
+        }
+    }
+
+    function moveCalendarTaskUp(index) {
         if (index > 0) {
             [tasks[index], tasks[index - 1]] = [tasks[index - 1], tasks[index]];
             localStorage.setItem('tasks', JSON.stringify(tasks));
             updateBackendReminders();
             renderTasks();
-            console.log(`Task moved up: index=${index}`);
+            renderCalendarTasks();
+            console.log(`Calendar task moved up: index=${index}`);
         }
     }
 
-    function moveTaskDown(index) {
+    function moveCalendarTaskDown(index) {
         if (index < tasks.length - 1) {
             [tasks[index], tasks[index + 1]] = [tasks[index + 1], tasks[index]];
             localStorage.setItem('tasks', JSON.stringify(tasks));
             updateBackendReminders();
             renderTasks();
-            console.log(`Task moved down: index=${index}`);
+            renderCalendarTasks();
+            console.log(`Calendar task moved down: index=${index}`);
         }
     }
 
@@ -639,12 +754,13 @@ if (document.querySelector('.progress-circle')) {
 
     function handleDrop(e) {
         e.preventDefault();
-        const targetItem = e.target.closest('.habit-item, .task-item');
+        const targetItem = e.target.closest('.habit-item, .task-item, .calendar-task-item');
         if (!targetItem || targetItem === draggedItem) return;
 
         const fromIndex = parseInt(draggedItem.getAttribute('data-index'));
         const toIndex = parseInt(targetItem.getAttribute('data-index'));
         const isHabit = draggedItem.classList.contains('habit-item');
+        const isCalendarTask = draggedItem.classList.contains('calendar-task-item');
 
         if (isHabit) {
             [habits[fromIndex], habits[toIndex]] = [habits[toIndex], habits[fromIndex]];
@@ -657,7 +773,8 @@ if (document.querySelector('.progress-circle')) {
             localStorage.setItem('tasks', JSON.stringify(tasks));
             updateBackendReminders();
             renderTasks();
-            console.log(`Task dragged from index ${fromIndex} to ${toIndex}`);
+            renderCalendarTasks();
+            console.log(`Task dragged from index ${fromIndex} to ${toIndex} ${isCalendarTask ? '(calendar)' : ''}`);
         }
     }
 
@@ -668,47 +785,70 @@ if (document.querySelector('.progress-circle')) {
 
     function handleKeydown(e, type, index) {
         index = parseInt(index);
-        if (e.key === 'ArrowUp' && index > 0) {
+        if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (type === 'habit') {
                 moveHabitUp(index);
-            } else {
+            } else if (type === 'task') {
                 moveTaskUp(index);
+            } else if (type === 'calendar-task') {
+                moveCalendarTaskUp(index);
             }
-        } else if (e.key === 'ArrowDown' && index < (type === 'habit' ? habits.length - 1 : tasks.length - 1)) {
+        } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             if (type === 'habit') {
                 moveHabitDown(index);
-            } else {
+            } else if (type === 'task') {
                 moveTaskDown(index);
+            } else if (type === 'calendar-task') {
+                moveCalendarTaskDown(index);
             }
         }
     }
 
     function toggleHabit(index) {
-        habits[index].completed = !habits[index].completed;
-        console.log(`toggleHabit: index=${index}, completed=${habits[index].completed}, hasIncrementedToday=${hasIncrementedToday}`);
-        renderHabits();
+        if (index >= 0 && index < habits.length) {
+            habits[index].completed = !habits[index].completed;
+            console.log(`toggleHabit: index=${index}, name=${habits[index].name}, completed=${habits[index].completed}, hasIncrementedToday=${hasIncrementedToday}`);
+            renderHabits();
+        } else {
+            console.error(`Invalid habit index: ${index}`);
+        }
     }
 
     function toggleTask(index) {
-        tasks[index].completed = !tasks[index].completed;
-        console.log(`toggleTask: index=${index}, completed=${tasks[index].completed}, hasIncrementedToday=${hasIncrementedToday}`);
-        renderTasks();
+        if (index >= 0 && index < tasks.length) {
+            tasks[index].completed = !tasks[index].completed;
+            console.log(`toggleTask: index=${index}, name=${tasks[index].name}, date=${tasks[index].date}, completed=${tasks[index].completed}, hasIncrementedToday=${hasIncrementedToday}`);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+            renderCalendarTasks();
+        } else {
+            console.error(`Invalid task index: ${index}`);
+        }
     }
 
     function deleteHabit(index) {
-        habits.splice(index, 1);
-        console.log(`Habit ${index} deleted, no progress change`);
-        updateBackendReminders();
-        renderHabits();
+        if (index >= 0 && index < habits.length) {
+            habits.splice(index, 1);
+            console.log(`Habit ${index} deleted`);
+            updateBackendReminders();
+            renderHabits();
+        } else {
+            console.error(`Invalid habit index: ${index}`);
+        }
     }
 
     function deleteTask(index) {
-        tasks.splice(index, 1);
-        console.log(`Task ${index} deleted, no progress change`);
-        updateBackendReminders();
-        renderTasks();
+        if (index >= 0 && index < tasks.length) {
+            tasks.splice(index, 1);
+            console.log(`Task ${index} deleted`);
+            updateBackendReminders();
+            renderTasks();
+            renderCalendarTasks();
+        } else {
+            console.error(`Invalid task index: ${index}`);
+        }
     }
 
     habitForm.addEventListener('submit', (e) => {
@@ -717,7 +857,7 @@ if (document.querySelector('.progress-circle')) {
         const reminderTime = habitReminder.value;
         if (habitName) {
             habits.push({ name: habitName, completed: false, reminder: reminderTime || null });
-            console.log(`New habit added: ${habitName}, reminder: ${reminderTime || 'none'}, no progress change`);
+            console.log(`New habit added: ${habitName}, reminder: ${reminderTime || 'none'}`);
             habitInput.value = '';
             habitReminder.value = '';
             updateBackendReminders();
@@ -730,12 +870,37 @@ if (document.querySelector('.progress-circle')) {
         const taskName = taskInput.value.trim();
         const reminderTime = taskReminder.value;
         if (taskName) {
-            tasks.push({ name: taskName, completed: false, reminder: reminderTime || null });
-            console.log(`New task added: ${taskName}, reminder: ${reminderTime || 'none'}, no progress change`);
+            tasks.push({ name: taskName, completed: false, reminder: reminderTime || null, date: currentDate });
+            console.log(`New task added: ${taskName}, date: ${currentDate}, reminder: ${reminderTime || 'none'}`);
             taskInput.value = '';
             taskReminder.value = '';
             updateBackendReminders();
             renderTasks();
+            renderCalendarTasks();
+        }
+    });
+
+    calendarForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const activityName = calendarActivity.value.trim();
+        const datetimeValue = calendarDatetime.value;
+        if (activityName && datetimeValue) {
+            const dateTime = DateTime.fromISO(datetimeValue, { zone: userTimezone });
+            const now = DateTime.now().setZone(userTimezone);
+            if (dateTime < now) {
+                alert('Please select a current or future date and time.');
+                return;
+            }
+            const selectedDate = dateTime.toISODate();
+            const reminderTime = dateTime.toFormat('HH:mm');
+            tasks.push({ name: activityName, completed: false, reminder: reminderTime || null, date: selectedDate });
+            console.log(`New activity added to tasks: ${activityName}, date: ${selectedDate}, reminder: ${reminderTime || 'none'}`);
+            calendarActivity.value = '';
+            calendarDatetime.value = '';
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            updateBackendReminders();
+            renderTasks();
+            renderCalendarTasks();
         }
     });
 
@@ -777,6 +942,7 @@ if (document.querySelector('.progress-circle')) {
     setProgress(circleProgress);
     renderHabits();
     renderTasks();
+    renderCalendarTasks();
     updateHabitChart();
     updateTaskChart();
 }
@@ -796,20 +962,46 @@ function setActiveNavLink() {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     document.querySelectorAll('.navbar-links ul li a').forEach(link => {
         link.classList.remove('active');
+        link.removeAttribute('aria-current');
         const href = link.getAttribute('href');
         if (href === currentPage) {
             link.classList.add('active');
+            link.setAttribute('aria-current', 'page');
         }
     });
 }
 
-// Set active link on page load
-document.addEventListener('DOMContentLoaded', setActiveNavLink);
+// Set active link and body class on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    if (currentPage === 'index.html' || currentPage === 'methods.html') {
+        document.body.classList.add('fixed-bottom');
+    }
+    setActiveNavLink();
+});
 
-// Handle click events to update active state
-document.querySelectorAll('.navbar-links ul li a').forEach(link => {
+// Handle click events for fixed-bottom navbar with animation
+document.querySelectorAll('.navbar-links.fixed-bottom ul li a').forEach(link => {
     link.addEventListener('click', (e) => {
-        document.querySelectorAll('.navbar-links ul li a').forEach(l => l.classList.remove('active'));
+        setTimeout(() => {
+            document.querySelectorAll('.navbar-links ul li a').forEach(l => {
+                l.classList.remove('active');
+                l.removeAttribute('aria-current');
+            });
+            e.currentTarget.classList.add('active');
+            e.currentTarget.setAttribute('aria-current', 'page');
+        }, 100);
+    });
+});
+
+// Handle click events for non-fixed navbar without animation
+document.querySelectorAll('.navbar-links:not(.fixed-bottom) ul li a').forEach(link => {
+    link.addEventListener('click', (e) => {
+        document.querySelectorAll('.navbar-links ul li a').forEach(l => {
+            l.classList.remove('active');
+            l.removeAttribute('aria-current');
+        });
         e.currentTarget.classList.add('active');
+        e.currentTarget.setAttribute('aria-current', 'page');
     });
 });
